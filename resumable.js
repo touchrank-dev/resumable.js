@@ -843,54 +843,61 @@
         var params = [];
 
         var parameterNamespace = $.getOpt('parameterNamespace');
-                if ($.getOpt('method') === 'octet') {
-                    // Add data from the query options
-                    data = bytes;
-                    $h.each(query, function (k, v) {
-                        params.push([encodeURIComponent(parameterNamespace + k), encodeURIComponent(v)].join('='));
-                    });
-                } else {
-                    // Add data from the query options
-                    data = new FormData();
-                    $h.each(query, function (k, v) {
-                        data.append(parameterNamespace + k, v);
-                        params.push([encodeURIComponent(parameterNamespace + k), encodeURIComponent(v)].join('='));
-                    });
-                    if ($.getOpt('chunkFormat') == 'blob') {
-                        data.append(parameterNamespace + $.getOpt('fileParameterName'), bytes, $.fileObj.fileName);
-                    }
-                    else if ($.getOpt('chunkFormat') == 'base64') {
-                        var fr = new FileReader();
-                        fr.onload = function (e) {
-                            data.append(parameterNamespace + $.getOpt('fileParameterName'), fr.result);
-                            $.xhr.send(data);
-                        }
-                        fr.readAsDataURL(bytes);
-                    }
-                }
+        //BY ZZY: Computer a digest of current chunk and make it a request parameter
+        bytes.arrayBuffer().then(buffer => {//BY ZZY
+          var checksum=md5?md5(buffer):'INVALID'//BY ZZY	
+          params.push([encodeURIComponent(parameterNamespace + "md5"), encodeURIComponent(checksum)].join('='));	//BY ZZY
+          //原始代码 
+          if ($.getOpt('method') === 'octet') {
+              // Add data from the query options
+              data = bytes;
+              $h.each(query, function (k, v) {
+                  params.push([encodeURIComponent(parameterNamespace + k), encodeURIComponent(v)].join('='));
+              });
+          } else {
+              // Add data from the query options
+              data = new FormData();
+              $h.each(query, function (k, v) {
+                  data.append(parameterNamespace + k, v);
+                  params.push([encodeURIComponent(parameterNamespace + k), encodeURIComponent(v)].join('='));
+              });
+              if ($.getOpt('chunkFormat') == 'blob') {
+                  data.append(parameterNamespace + $.getOpt('fileParameterName'), bytes, $.fileObj.fileName);
+              }
+              else if ($.getOpt('chunkFormat') == 'base64') {
+                  var fr = new FileReader();
+                  fr.onload = function (e) {
+                      data.append(parameterNamespace + $.getOpt('fileParameterName'), fr.result);
+                      $.xhr.send(data);
+                  }
+                  fr.readAsDataURL(bytes);
+              }
+          }
 
-        var target = $h.getTarget('upload', params);
-        var method = $.getOpt('uploadMethod');
+          var target = $h.getTarget('upload', params);
+          var method = $.getOpt('uploadMethod');
 
-        $.xhr.open(method, target);
-        if ($.getOpt('method') === 'octet') {
-          $.xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-        }
-        $.xhr.timeout = $.getOpt('xhrTimeout');
-        $.xhr.withCredentials = $.getOpt('withCredentials');
-        // Add data from header options
-        var customHeaders = $.getOpt('headers');
-        if(typeof customHeaders === 'function') {
-          customHeaders = customHeaders($.fileObj, $);
-        }
+          $.xhr.open(method, target);
+          if ($.getOpt('method') === 'octet') {
+            $.xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+          }
+          $.xhr.timeout = $.getOpt('xhrTimeout');
+          $.xhr.withCredentials = $.getOpt('withCredentials');
+          // Add data from header options
+          var customHeaders = $.getOpt('headers');
+          if(typeof customHeaders === 'function') {
+            customHeaders = customHeaders($.fileObj, $);
+          }
 
-        $h.each(customHeaders, function(k,v) {
-          $.xhr.setRequestHeader(k, v);
-        });
+          $h.each(customHeaders, function(k,v) {
+            $.xhr.setRequestHeader(k, v);
+          });
 
-        if ($.getOpt('chunkFormat') == 'blob') {
-            $.xhr.send(data);
-        }
+          if ($.getOpt('chunkFormat') == 'blob') {
+              $.xhr.send(data);
+          }
+          //原始代码结束
+        });//BY ZZY
       };
       $.abort = function(){
         // Abort and reset
